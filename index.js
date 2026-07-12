@@ -1,8 +1,11 @@
 const { execSync } = require('child_process');
 
-module.exports = function (api) {
-  api.registerAccessory("Command Accessory", CommandAccessoryPlugin);
-}
+const PLUGIN_IDENTIFIER = 'homebridge-plugin-command';
+const ACCESSORY_NAME = 'Command Accessory';
+
+module.exports = function(api) {
+  api.registerAccessory(PLUGIN_IDENTIFIER, ACCESSORY_NAME, CommandAccessoryPlugin);
+};
 
 function durationSeconds(timeExpr) {
   if (!isNaN(timeExpr)) {
@@ -26,12 +29,14 @@ class CommandAccessoryPlugin {
     this.config = config;
     this.api = api;
     this.currentState = false;
+    this.name = config.name || ACCESSORY_NAME;
+    this.invertStatus = Boolean(config.invert_status);
 
     // your accessory must have an AccessoryInformation service
     this.informationService = new this.api.hap.Service.AccessoryInformation()
-      .setCharacteristic(this.api.hap.Characteristic.Manufacturer, "adyanth")
-      .setCharacteristic(this.api.hap.Characteristic.SerialNumber, "#007")
-      .setCharacteristic(this.api.hap.Characteristic.Model, config["name"]);
+      .setCharacteristic(this.api.hap.Characteristic.Manufacturer, 'adyanth')
+      .setCharacteristic(this.api.hap.Characteristic.SerialNumber, '#007')
+      .setCharacteristic(this.api.hap.Characteristic.Model, this.name);
 
     // create a new "Switch" service
     this.switchService = new this.api.hap.Service.Switch(this.name);
@@ -44,23 +49,32 @@ class CommandAccessoryPlugin {
     if (this.config.check_status && this.config.poll_check) {
       let secs = durationSeconds(this.config.poll_check);
       if (isNaN(secs) || secs < 1) {
-        this.log.error("Too frequent or incorrect poll check time, polling disabled.");
-        return;
+        this.log.error('Too frequent or incorrect poll check time, polling disabled.');
+      } else {
+        this.log.info(`Setting poll interval to ${secs}s`);
+        this.interval = setInterval(async () => {
+          this.log.debug('Polling status');
+          const oldState = this.currentState;
+          if (await this.getState(secs * 1000) !== oldState) {
+            this.log.debug('Updating state');
+            this.switchService.getCharacteristic(this.api.hap.Characteristic.On)
+              .updateValue(this.currentState);
+          }
+          this.log.debug('Polling done');
+        }, secs * 1000);
+
+        this.interval.unref?.();
       }
-      this.log.info(`Setting poll interval to ${secs}s`);
-      this.interval = setInterval(async () => {
-        this.log.debug("Polling status");
-        let oldState = this.currentState;
-        if (await this.getState(secs * 1000) != oldState) {
-          this.log.debug("Updating state")
-          this.switchService.getCharacteristic(this.api.hap.Characteristic.On)
-            .updateValue(this.currentState);
-        }
-        this.log.debug(`Polling done`);
-      }, secs * 1000);
     }
 
-    this.log.info(`Command Accessory Plugin Loaded`);
+    this.api.on('shutdown', () => {
+      if (this.interval) {
+        clearInterval(this.interval);
+        this.interval = undefined;
+      }
+    });
+
+    this.log.info('Command Accessory Plugin Loaded');
   }
 
   getServices() {
@@ -74,7 +88,7 @@ class CommandAccessoryPlugin {
     this.log.debug(`Getting switch state`);
 
     if (!this.config.check_status) {
-      this.log.debug(`No check_status, returning static state: ${this.currentState}`)
+      this.log.debug(`No check_status, returning static state: ${this.currentState}`);
       return this.currentState;
     }
 
@@ -82,9 +96,9 @@ class CommandAccessoryPlugin {
 
     try {
       execSync(this.config.check_status, { timeout: timeout });
-      this.currentState = !this.config.invert_status;
+      this.currentState = !this.invertStatus;
     } catch (error) {
-      this.currentState = this.config.invert_status;
+      this.currentState = this.invertStatus;
     }
 
     this.log.debug(`Returning: ${this.currentState}`);
@@ -92,9 +106,16 @@ class CommandAccessoryPlugin {
   }
 
   async setState(value) {
-    this.log.debug(`Setting switch state to: `, value);
+    this.log.debug(`Setting switch state to: ${value}`);
 
-    let cmd = value ? this.config.turn_on : this.config.turn_off;
+    const cmd = value ? this.config.turn_on : this.config.turn_off;
+
+    if (!cmd) {
+      this.currentState = value;
+      this.log.warn(`No command configured for state ${value ? 'on' : 'off'}; updating switch state only.`);
+      return this.currentState;
+    }
+
     let exitCode = 1;
     this.log.debug(`Running: ${cmd}`);
     try {
@@ -105,8 +126,8 @@ class CommandAccessoryPlugin {
     }
 
     // Set state depending on whether the command exited successfully or not.
-    this.currentState = value ^ (exitCode != 0);
-    this.log.debug(`Returning: ${this.currentState}}`);
+    this.currentState = Boolean(value ^ (exitCode !== 0));
+    this.log.debug(`Returning: ${this.currentState}`);
     return this.currentState;
   }
 }
