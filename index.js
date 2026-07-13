@@ -31,6 +31,17 @@ class CommandAccessoryPlugin {
     this.currentState = false;
     this.name = config.name || ACCESSORY_NAME;
     this.invertStatus = Boolean(config.invert_status);
+    this.logCommandFailures = config.log_command_failures !== false;
+    this.commandTimeoutMs = undefined;
+
+    if (config.command_timeout) {
+      const secs = durationSeconds(config.command_timeout);
+      if (isNaN(secs) || secs < 1) {
+        this.log.error('Invalid command_timeout, ignoring (commands will not be timed out).');
+      } else {
+        this.commandTimeoutMs = secs * 1000;
+      }
+    }
 
     // your accessory must have an AccessoryInformation service
     this.informationService = new this.api.hap.Service.AccessoryInformation()
@@ -84,7 +95,18 @@ class CommandAccessoryPlugin {
     ];
   }
 
-  async getState(timeout = undefined) {
+  logCommandFailure(cmd, error, { warn = false } = {}) {
+    const level = warn && this.logCommandFailures ? 'warn' : 'debug';
+
+    if (error.killed || error.signal === 'SIGTERM') {
+      this.log[level](`Command timed out: ${cmd}`);
+      return;
+    }
+    const stderr = error.stderr ? error.stderr.toString().trim() : '';
+    this.log[level](`Command failed: ${cmd} (exit code ${error.status}); ${stderr || error.message}`);
+  }
+
+  async getState(timeout = this.commandTimeoutMs) {
     this.log.debug(`Getting switch state`);
 
     if (!this.config.check_status) {
@@ -98,6 +120,7 @@ class CommandAccessoryPlugin {
       execSync(this.config.check_status, { timeout: timeout });
       this.currentState = !this.invertStatus;
     } catch (error) {
+      this.logCommandFailure(this.config.check_status, error);
       this.currentState = this.invertStatus;
     }
 
@@ -119,9 +142,10 @@ class CommandAccessoryPlugin {
     let exitCode = 1;
     this.log.debug(`Running: ${cmd}`);
     try {
-      execSync(cmd);
+      execSync(cmd, { timeout: this.commandTimeoutMs });
       exitCode = 0;
     } catch (error) {
+      this.logCommandFailure(cmd, error, { warn: true });
       exitCode = 1;
     }
 

@@ -9,6 +9,10 @@ Under Plugins > Homebridge Shell Command > Settings, add an accessory and fill i
 By default, `check_status` assumes turned on if the exit code of the command is 0. Set `invert_status` to true to flip it.
 `check_status` command is optional, and if not provided, it just alternates as you turn it on and off. You can enable polling the check status and automatically pushing the change by setting the `poll_check` to number of seconds or in this format `1d2h3m4s`.
 
+`command_timeout` (optional, same duration format as `poll_check`) kills `turn_on`/`turn_off`/`check_status` commands that run longer than the given time, treating them as failed. Leave it unset for no timeout.
+
+`log_command_failures` (optional, default `true`) logs a warning when a `turn_on`/`turn_off` command fails or times out. Set it to `false` to only log failures at debug level. `check_status` failures are always debug-only, since a failed check is often just the device being off.
+
 If you like a JSON config, see the sample below.
 
 ```json
@@ -19,7 +23,9 @@ If you like a JSON config, see the sample below.
   "turn_off": "rm /tmp/testFile",
   "check_status": "ls /tmp/testFile",
   "poll_check": "5",
-  "invert_status": false
+  "invert_status": false,
+  "command_timeout": "10",
+  "log_command_failures": true
 }
 ```
 

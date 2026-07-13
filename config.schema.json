@@ -40,6 +40,17 @@
                 "type": "boolean",
                 "default": false,
                 "description": "Exit code 0 is turned off (applies to check status only)"
+            },
+            "command_timeout": {
+                "title": "(Optional) Command timeout",
+                "type": "string",
+                "description": "(Optional) Timeout in seconds or 5d2h3m10s format for turn_on/turn_off/check_status commands. If a command runs longer than this, it is killed and treated as a failure. Leave blank for no timeout."
+            },
+            "log_command_failures": {
+                "title": "Log a warning when turn_on/turn_off commands fail",
+                "type": "boolean",
+                "default": true,
+                "description": "check_status failures are always only logged at debug level, since a failed check is often just the device being off."
             }
         },
         "required": [
