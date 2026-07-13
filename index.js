@@ -1,7 +1,7 @@
 const { execSync } = require('child_process');
 
-const PLUGIN_IDENTIFIER = 'homebridge-plugin-command';
-const ACCESSORY_NAME = 'Command Accessory';
+const PLUGIN_IDENTIFIER = 'homebridge-shell-command';
+const ACCESSORY_NAME = 'Shell Command';
 
 module.exports = function(api) {
   api.registerAccessory(PLUGIN_IDENTIFIER, ACCESSORY_NAME, CommandAccessoryPlugin);
@@ -34,7 +34,7 @@ class CommandAccessoryPlugin {
 
     // your accessory must have an AccessoryInformation service
     this.informationService = new this.api.hap.Service.AccessoryInformation()
-      .setCharacteristic(this.api.hap.Characteristic.Manufacturer, 'adyanth')
+      .setCharacteristic(this.api.hap.Characteristic.Manufacturer, 'ctrlcmdshft')
       .setCharacteristic(this.api.hap.Characteristic.SerialNumber, '#007')
       .setCharacteristic(this.api.hap.Characteristic.Model, this.name);
 
@@ -74,7 +74,7 @@ class CommandAccessoryPlugin {
       }
     });
 
-    this.log.info('Command Accessory Plugin Loaded');
+    this.log.info('Shell Command Plugin Loaded');
   }
 
   getServices() {

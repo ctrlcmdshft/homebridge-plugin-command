@@ -1,6 +1,6 @@
 {
-  "name": "homebridge-plugin-command",
-  "version": "1.0.7",
+  "name": "homebridge-shell-command",
+  "version": "1.0.0",
   "description": "This Homebridge plugin enables you to create virtual switches that can run any custom command when it is turned on or off.",
   "main": "index.js",
   "scripts": {
@@ -12,18 +12,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/adyanth/homebridge-plugin-command"
+    "url": "git+https://github.com/ctrlcmdshft/homebridge-shell-command"
   },
   "keywords": [
     "homebridge-plugin",
-    "homebridge-plugin-command"
+    "homebridge-shell-command"
   ],
-  "author": "adyanth",
+  "author": "ctrlcmdshft",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/adyanth/homebridge-plugin-command/issues"
+    "url": "https://github.com/ctrlcmdshft/homebridge-shell-command/issues"
   },
-  "homepage": "https://github.com/adyanth/homebridge-plugin-command",
+  "homepage": "https://github.com/ctrlcmdshft/homebridge-shell-command",
   "dependencies": {
   }
 }

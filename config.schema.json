@@ -1,5 +1,5 @@
 {
-    "pluginAlias": "Command Accessory",
+    "pluginAlias": "Shell Command",
     "pluginType": "accessory",
     "singular": false,
     "headerDisplay": "Add a command based accessory below",
